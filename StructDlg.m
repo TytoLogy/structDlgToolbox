@@ -233,7 +233,7 @@ if (isstruct(struct_def)) % Init
    max_width = (size(char(fnames_lbl),2) + 4) * font_size/7;
    tot_height = max(5,length(fnames_lbl)* (1+vert_spacing) + vert_spacing+2.5);
    recurssion_offset = 7*(rec_level-1);
-   if ((exist('fig_pos','var') ~= 1) || isempty(fig_pos))
+   if ((exist('fig_pos','var') ~= 1) | isempty(fig_pos))
       fig_pos = [screen_size(3)/5+recurssion_offset  screen_size(4)-tot_height-4-recurssion_offset/aspec_ratio ...
          screen_size(3)*3/5  tot_height+2];
       specified_pos = 0;
@@ -289,7 +289,7 @@ if (isstruct(struct_def)) % Init
 
    OK_vert_pos = min(0.5,fig_pos(4)-tot_height);
    % OK_vert_pos = fig_pos(4)-tot_height;
-   if (OK_vert_pos < 0) || (force_slider == 1)
+   if (OK_vert_pos < 0)
       slider_step = fig_pos(4) / (abs(OK_vert_pos)+fig_pos(4));
       h_slider = uicontrol(h_fig, ...
          'style',         'slider', ...
@@ -344,10 +344,10 @@ if (isstruct(struct_def)) % Init
    delete(h_fig);
 
    % Following are callbacks from the form
-elseif (iscell(struct_def) && ~isempty(struct_def))
+elseif (iscell(struct_def) & ~isempty(struct_def))
    StructDlgCB(struct_def{1}); % Callback from one of the regular input fields. Processed in 'StructDlgCB'.
 
-elseif (ischar(struct_def))
+elseif (isstr(struct_def))
    % Other push buttons or context-menus in the form.
    [cmd args] = strtok(struct_def,'(');
    if (~isempty(args))
@@ -435,7 +435,7 @@ for i = 1:length(fnames)
          %             end
          %          end
          if (length(fvals{i}) >=4)
-            if (~isempty(fvals{i}{4}) && fvals{i}{4} == 1)
+            if (~isempty(fvals{i}{4}) & fvals{i}{4} == 1)
                protected = setfield(protected,{1},fnames{i},1);
             end
          end
@@ -454,7 +454,7 @@ for i = 1:length(fnames)
    switch (class(fvals{i}))
       case 'cell'
          if (length(fvals{i}) >=5)
-            if (~isempty(fvals{i}{5}) && fvals{i}{5} == 1 && isfield(dflt,fnames{i}))
+            if (~isempty(fvals{i}{5}) & fvals{i}{5} == 1 & isfield(dflt,fnames{i}))
                dflt = rmfield(dflt,fnames{i});
             end
          end
@@ -468,13 +468,13 @@ for i = 1:length(fnames)
 end
 
 %%%%%%%%%%%%%
-function fnames_lbl = build_labels(fnames,units)
+function fnames_lbl = build_labels(fnames,units);
 %
 fnames_lbl = strrep(fnames,'_',' ');
 f_units = fieldnames(units);
 v_units = struct2cell(units);
 for i = 1:length(f_units)
-   if (ischar(v_units{i}) && ~isempty(v_units{i}))
+   if (ischar(v_units{i}) & ~isempty(v_units{i}))
       index = strmatch(f_units{i},fnames,'exact');
       if (~isempty(index))
          fnames_lbl{index} = strrep(v_units{i},'*',fnames_lbl{index});
@@ -492,7 +492,7 @@ if (length(chld) ==1)
    return;
 end
 for i = length(chld):-1:1
-   if (strcmp(get(chld(i),'Type'),'uicontrol') && ~strcmp(get(chld(i),'Style'),'text') && ...
+   if (strcmp(get(chld(i),'Type'),'uicontrol') & ~strcmp(get(chld(i),'Style'),'text') & ...
          strcmp(get(chld(i),'Enable'),'on'))
       ind = i;
       break;
@@ -523,10 +523,10 @@ return;
 function ud = set_fields_ui(def,h_fig,ud,present_val,fnames,ignore_defaults)
 %
 % vals = def;
-if ((exist('fnames','var') ~= 1) || isempty(fnames))
+if ((exist('fnames','var') ~= 1) | isempty(fnames))
    fnames = fieldnames(def);
 end
-if (exist('ignore_defaults', 'var') ~= 1)
+if (exist('ignore_defaults') ~= 1)
    ignore_defaults = 0;
 end
 if (~isfield(ud,'vals'))
@@ -570,14 +570,14 @@ for i = 1:length(fnames)
    else
       limits = [];
    end
-   if (isfield(dflt,fnames{i}) && ~ignore_defaults)
+   if (isfield(dflt,fnames{i}) & ~ignore_defaults)
       dflt_val = getfield(dflt,fnames{i});
    else
       dflt_val = [];
    end
 
    % val is a numeric or should be evaluated to a numeric value
-   if (~isempty(limits) && ~isstruct(limits))
+   if (~isempty(limits) & ~isstruct(limits))
       ud = reset_numeric_field(h_fig,h,fnames{i},val,lbl_pos,limits,ud,dflt_val,ignore_defaults);
 
    elseif (ischar(val))
@@ -594,13 +594,13 @@ for i = 1:length(fnames)
 
    elseif (iscell(val))
       % Special requests
-      if ((length(val) == 1) && ischar(val{1}))
-         if (~isempty(strmatch('uigetfile',val{1})) || ...
-               ~isempty(strmatch('uiputfile',val{1})) || ...
+      if ((length(val) == 1) & ischar(val{1}))
+         if (~isempty(strmatch('uigetfile',val{1})) | ...
+               ~isempty(strmatch('uiputfile',val{1})) | ...
                ~isempty(strmatch('uigetdir',val{1})) )
             ud = reset_getfile_field(h_fig,h,fnames{i},val,lbl_pos,ud,dflt_val);
          end
-      elseif ((length(val) == 2) && strmatch(val{1},{'0','{0}'},'exact') && strmatch(val{2},{'1','{1}'},'exact'))
+      elseif ((length(val) == 2) & strmatch(val{1},{'0','{0}'},'exact') & strmatch(val{2},{'1','{1}'},'exact'))
          ud = reset_checkbox_field(h_fig,h,fnames{i},val,h_lbl,lbl_pos,ud,dflt_val);
       else
          ud = reset_popupmenu_field(h_fig,h,fnames{i},val,lbl_pos,ud,dflt_val);
