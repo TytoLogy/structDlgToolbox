@@ -1,8 +1,8 @@
-function [P,units] = StructDlg(struct_def,title,dflt,fig_pos,visible,present_val)
+function [P,units] = StructDlg(struct_def, title, dflt, fig_pos, visible, present_val, varargin)
 % StructDlg - A structure based definition of an input GUI. Allows for a quick and 
 %             convenient text based definition of a GUI
 %
-%   StructDlg(struct_def, title, default_values, position)
+%   StructDlg(struct_def, title, default_values, position, visible, present_values)
 %
 % StructDlg creates a modal dialog box that contains a user interface (UI) control 
 % for each of the struct_def fields.
@@ -126,12 +126,21 @@ function [P,units] = StructDlg(struct_def,title,dflt,fig_pos,visible,present_val
 %                     sub-structures of lower levels; however, this is highly not recommended.
 %
 %
-%     'title' is the title of the dialog-box.'dflt' is a structure which contain default values for P.
-%     These values will override  the default values specified in
-%     struct_def.
+%     'title' is the title of the dialog-box.'dflt' is a structure which contain 
+%		default values for P. These values will override the default values 
+% 		specified in struct_def.
+% 
 %     Note that the dflt should contain the default values only, not the entire
-%     definition as specified in S. This is useful for enabling user-specific defaults that override the
-%     'factory defaults'.
+%     definition as specified in S. This is useful for enabling user-specific 
+% 		defaults that override the 'factory defaults'.
+%
+% 	To control appearance, user can set the following parameters:
+% 
+% 		'vert_spacing'		spacing between rows (default: 1)
+% 		'font_size'			size, in pts, of text (default: 10)
+% 		'col'					color of text (default: 'k' black)
+% 		'screen_size'		size of screen, in characters (default: get_screen_size('char') )
+% 		'aspec_ratio'		aspect ratio of screen (default: screen_size(3)/screen_size(4) )
 %
 %    See also: Struct2str, Browse_Struct
 %
@@ -142,10 +151,11 @@ function [P,units] = StructDlg(struct_def,title,dflt,fig_pos,visible,present_val
 
 % AF 1/10/2005: Fixed a bug that crashed StructDlg when substructure were used.
 % AF 1/10/2005: Allow for auto-updates even when the referenced field is not an edit UI
+% SJS 2 Aug 2012: added varargin to allow options to modify display parameters
 
 global rec_level
 
-if ((isempty(rec_level)) | (rec_level <0))
+if ((isempty(rec_level)) || (rec_level <0))
    rec_level = 0;
 end
 
@@ -153,25 +163,60 @@ if (exist('struct_def','var') ~= 1)
    rec_level = rec_level-1; % For delete function.
    return
 end
-if ((exist('title','var') ~= 1) | isempty(title))
+if ((exist('title','var') ~= 1) || isempty(title))
    title = 'Input Form';
 end
 if (exist('dflt','var') ~= 1)
    dflt = struct([]);
 end
-if ((exist('visible','var') ~= 1) | isempty(visible))
+if ((exist('visible','var') ~= 1) || isempty(visible))
    % 'Visible' is used mainly in recursive calls for the construction of a temporary hidden form for substructures.
    visible = 'on';
 end
 if (exist('present_val','var') ~= 1)
-   present_val = []; % 'present_val' is used to pass the last value of sub-structure fields.
+	% 'present_val' is used to pass the last value of sub-structure fields.
+	present_val = []; 
 end
 
 vert_spacing = 1;
-font_size    = 11;
+font_size    = 10;
 col          = 'k';
 screen_size  = get_screen_size('char');
 aspec_ratio  = screen_size(3)/screen_size(4);
+force_slider = 0;
+
+if ~isempty(varargin)
+	n = 1;
+	while n <= length(varargin)
+		if strcmpi(varargin{n}, 'vert_spacing')
+			vert_spacing = varargin{n+1};
+			n = n + 2;
+		elseif strcmpi(varargin{n}, 'font_size')
+			font_size = varargin{n+1};
+			n = n + 2;
+		elseif strcmpi(varargin{n}, 'col')
+			col = varargin{n+1};
+			n = n + 2;
+		elseif strcmpi(varargin{n}, 'screen_size')
+			screen_size = varargin{n+1};
+			n = n + 2;
+		elseif strcmpi(varargin{n}, 'aspec_ratio')
+			aspec_ratio = varargin{n+1};
+			n = n + 2;
+		elseif strcmpi(varargin{n}, 'force_slider')
+			force_slider = varargin{n+1};
+			n = n + 2;
+		else
+			warning('Input:Unknown', '%s: unknown parameter %s, using defaults', mfilename, varargin{n});
+			vert_spacing = 0.5;
+			font_size    = 8;
+			col          = 'k';
+			screen_size  = get_screen_size('char');
+			aspec_ratio  = screen_size(3)/screen_size(4);
+			n = n + length(varargin);
+		end
+	end
+end
 
 if (isstruct(struct_def)) % Init
    rec_level = rec_level+1;
@@ -188,7 +233,7 @@ if (isstruct(struct_def)) % Init
    max_width = (size(char(fnames_lbl),2) + 4) * font_size/7;
    tot_height = max(5,length(fnames_lbl)* (1+vert_spacing) + vert_spacing+2.5);
    recurssion_offset = 7*(rec_level-1);
-   if ((exist('fig_pos','var') ~= 1) | isempty(fig_pos))
+   if ((exist('fig_pos','var') ~= 1) || isempty(fig_pos))
       fig_pos = [screen_size(3)/5+recurssion_offset  screen_size(4)-tot_height-4-recurssion_offset/aspec_ratio ...
          screen_size(3)*3/5  tot_height+2];
       specified_pos = 0;
@@ -244,7 +289,7 @@ if (isstruct(struct_def)) % Init
 
    OK_vert_pos = min(0.5,fig_pos(4)-tot_height);
    % OK_vert_pos = fig_pos(4)-tot_height;
-   if (OK_vert_pos < 0)
+   if (OK_vert_pos < 0) || (force_slider == 1)
       slider_step = fig_pos(4) / (abs(OK_vert_pos)+fig_pos(4));
       h_slider = uicontrol(h_fig, ...
          'style',         'slider', ...
@@ -299,10 +344,10 @@ if (isstruct(struct_def)) % Init
    delete(h_fig);
 
    % Following are callbacks from the form
-elseif (iscell(struct_def) & ~isempty(struct_def))
+elseif (iscell(struct_def) && ~isempty(struct_def))
    StructDlgCB(struct_def{1}); % Callback from one of the regular input fields. Processed in 'StructDlgCB'.
 
-elseif (isstr(struct_def))
+elseif (ischar(struct_def))
    % Other push buttons or context-menus in the form.
    [cmd args] = strtok(struct_def,'(');
    if (~isempty(args))
@@ -390,7 +435,7 @@ for i = 1:length(fnames)
          %             end
          %          end
          if (length(fvals{i}) >=4)
-            if (~isempty(fvals{i}{4}) & fvals{i}{4} == 1)
+            if (~isempty(fvals{i}{4}) && fvals{i}{4} == 1)
                protected = setfield(protected,{1},fnames{i},1);
             end
          end
@@ -409,7 +454,7 @@ for i = 1:length(fnames)
    switch (class(fvals{i}))
       case 'cell'
          if (length(fvals{i}) >=5)
-            if (~isempty(fvals{i}{5}) & fvals{i}{5} == 1 & isfield(dflt,fnames{i}))
+            if (~isempty(fvals{i}{5}) && fvals{i}{5} == 1 && isfield(dflt,fnames{i}))
                dflt = rmfield(dflt,fnames{i});
             end
          end
@@ -423,13 +468,13 @@ for i = 1:length(fnames)
 end
 
 %%%%%%%%%%%%%
-function fnames_lbl = build_labels(fnames,units);
+function fnames_lbl = build_labels(fnames,units)
 %
 fnames_lbl = strrep(fnames,'_',' ');
 f_units = fieldnames(units);
 v_units = struct2cell(units);
 for i = 1:length(f_units)
-   if (ischar(v_units{i}) & ~isempty(v_units{i}))
+   if (ischar(v_units{i}) && ~isempty(v_units{i}))
       index = strmatch(f_units{i},fnames,'exact');
       if (~isempty(index))
          fnames_lbl{index} = strrep(v_units{i},'*',fnames_lbl{index});
@@ -447,7 +492,7 @@ if (length(chld) ==1)
    return;
 end
 for i = length(chld):-1:1
-   if (strcmp(get(chld(i),'Type'),'uicontrol') & ~strcmp(get(chld(i),'Style'),'text') & ...
+   if (strcmp(get(chld(i),'Type'),'uicontrol') && ~strcmp(get(chld(i),'Style'),'text') && ...
          strcmp(get(chld(i),'Enable'),'on'))
       ind = i;
       break;
@@ -478,10 +523,10 @@ return;
 function ud = set_fields_ui(def,h_fig,ud,present_val,fnames,ignore_defaults)
 %
 % vals = def;
-if ((exist('fnames','var') ~= 1) | isempty(fnames))
+if ((exist('fnames','var') ~= 1) || isempty(fnames))
    fnames = fieldnames(def);
 end
-if (exist('ignore_defaults') ~= 1)
+if (exist('ignore_defaults', 'var') ~= 1)
    ignore_defaults = 0;
 end
 if (~isfield(ud,'vals'))
@@ -525,14 +570,14 @@ for i = 1:length(fnames)
    else
       limits = [];
    end
-   if (isfield(dflt,fnames{i}) & ~ignore_defaults)
+   if (isfield(dflt,fnames{i}) && ~ignore_defaults)
       dflt_val = getfield(dflt,fnames{i});
    else
       dflt_val = [];
    end
 
    % val is a numeric or should be evaluated to a numeric value
-   if (~isempty(limits) & ~isstruct(limits))
+   if (~isempty(limits) && ~isstruct(limits))
       ud = reset_numeric_field(h_fig,h,fnames{i},val,lbl_pos,limits,ud,dflt_val,ignore_defaults);
 
    elseif (ischar(val))
@@ -549,13 +594,13 @@ for i = 1:length(fnames)
 
    elseif (iscell(val))
       % Special requests
-      if ((length(val) == 1) & ischar(val{1}))
-         if (~isempty(strmatch('uigetfile',val{1})) | ...
-               ~isempty(strmatch('uiputfile',val{1})) | ...
+      if ((length(val) == 1) && ischar(val{1}))
+         if (~isempty(strmatch('uigetfile',val{1})) || ...
+               ~isempty(strmatch('uiputfile',val{1})) || ...
                ~isempty(strmatch('uigetdir',val{1})) )
             ud = reset_getfile_field(h_fig,h,fnames{i},val,lbl_pos,ud,dflt_val);
          end
-      elseif ((length(val) == 2) & strmatch(val{1},{'0','{0}'},'exact') & strmatch(val{2},{'1','{1}'},'exact'))
+      elseif ((length(val) == 2) && strmatch(val{1},{'0','{0}'},'exact') && strmatch(val{2},{'1','{1}'},'exact'))
          ud = reset_checkbox_field(h_fig,h,fnames{i},val,h_lbl,lbl_pos,ud,dflt_val);
       else
          ud = reset_popupmenu_field(h_fig,h,fnames{i},val,lbl_pos,ud,dflt_val);
