@@ -227,13 +227,13 @@ if (isstruct(struct_def)) % Init
       dflt = rm_ignore_dflt(dflt,struct_def); % AF 6/20/02: Comment this line out if cuases problems.
       present_val = rm_ignore_dflt(present_val,struct_def);
    end
-   [struct_def units limits protected] = split_def(struct_def);
+   [struct_def, units, limits, protected] = split_def(struct_def);
    fnames = fieldnames(struct_def);
    fnames_lbl = build_labels(fieldnames(struct_def),units);
    max_width = (size(char(fnames_lbl),2) + 4) * font_size/7;
    tot_height = max(5,length(fnames_lbl)* (1+vert_spacing) + vert_spacing+2.5);
    recurssion_offset = 7*(rec_level-1);
-   if ((exist('fig_pos','var') ~= 1) | isempty(fig_pos))
+   if ((exist('fig_pos','var') ~= 1) || isempty(fig_pos))
       fig_pos = [screen_size(3)/5+recurssion_offset  screen_size(4)-tot_height-4-recurssion_offset/aspec_ratio ...
          screen_size(3)*3/5  tot_height+2];
       specified_pos = 0;
